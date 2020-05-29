@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.huangshangi.novelreader.custom.CustomLinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/out_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#9983CC39"
+    android:clipChildren="false"
+    android:orientation="vertical">
+
+    <RelativeLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+
+        <include
+
+            layout="@layout/title_base"
+            />
+        <include
+            android:visibility="gone"
+            layout="@layout/title_edit_base"
+            />
+
+    </RelativeLayout>
+
+
+    <com.huxq17.handygridview.HandyGridView
+        android:id="@+id/grid_tips"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/white"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:gravity="center"
+        android:horizontalSpacing="10dp"
+        android:numColumns="3"
+        android:paddingBottom="30dp"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        android:paddingTop="20dp"
+        android:scrollbars="vertical"
+        android:stretchMode="columnWidth"
+        android:verticalSpacing="10dp" />
+
+
+
+</com.huangshangi.novelreader.custom.CustomLinearLayout>
