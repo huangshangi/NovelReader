@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.Dialog;
 import android.content.ContentProviderClient;
 import android.content.Context;
+import android.content.Intent;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -17,6 +18,7 @@ import com.huangshangi.novelreader.DayStyle;
 import com.huangshangi.novelreader.R;
 import com.huangshangi.novelreader.ReadStyle;
 import com.huangshangi.novelreader.ReadingSetting;
+import com.huangshangi.novelreader.ui.FontsActivity;
 import com.huangshangi.novelreader.ui.ReadActivity;
 
 import java.util.ArrayList;
@@ -97,11 +99,13 @@ public class DialogFactory {
 
 
 
-    public static Dialog getSettingDetailDialog(final Activity context, final TextSizeListener textSizeListener, final ReadStyleListener readStyleListener
+    public static Dialog getSettingDetailDialog(final Activity context, final TextSizeListener textSizeListener,
+                                                final TradSimpListener tradSimpListener,
+                                                final ReadStyleListener readStyleListener, final ScrollSpeedListener scrollSpeedListener
                                                 ){
 
         final Dialog dialog=new Dialog(context,R.style.setting_dialog);
-        View view=LayoutInflater.from(context).inflate(R.layout.read_detail_setting,null);
+        final View view=LayoutInflater.from(context).inflate(R.layout.read_detail_setting,null);
         final List<ImageView>readstyleList=new ArrayList<>();
         final ReadingSetting setting=ReadingSetting.getInstance();
         dialog.setContentView(view);
@@ -119,8 +123,10 @@ public class DialogFactory {
         TextView tvTextSizeLess=view.findViewById(R.id.text_size_less);
         TextView tvTextSizeLarger=view.findViewById(R.id.text_size_larger);
         final TextView tvTextSize=view.findViewById(R.id.text_size);
-        TextView tvTradAndSimp=view.findViewById(R.id.simplified_and_traditional);
+        final TextView tvTradAndSimp=view.findViewById(R.id.simplified_and_traditional);
         TextView tvTextFont=view.findViewById(R.id.text_font);
+        final SeekBar seekBar=view.findViewById(R.id.auto_scroll_progress);
+        final TextView tvAutoScroll=view.findViewById(R.id.auto_scroll);
 
         //阅读格式
         final ImageView ivReadStyleCommon=view.findViewById(R.id.iv_common_style);
@@ -135,9 +141,45 @@ public class DialogFactory {
         readstyleList.add(ivReadStyleBreen);
         readstyleList.add(ivReadStyleBlue);
 
+        setReadStyle(readstyleList.get(ReadStyle.indexOf(setting.getReadStyle())));
+
+        seekBar.setProgress(setting.getAutoReadingSpeed());
+        tvAutoScroll.setSelected(setting.isAutoReading());
 
         sbBrightness.setProgress(SysUtil.getBrightness(context));
 
+        if(setting.isTradition())
+            tvTradAndSimp.setText("繁");
+        else
+            tvTradAndSimp.setText("简");
+
+        tvAutoScroll.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                setting.setAutoReading(!setting.isAutoReading());
+                tvAutoScroll.setSelected(setting.isAutoReading());
+                if (scrollSpeedListener!=null)
+                    scrollSpeedListener.changeSpeed(v,seekBar.getProgress(),setting.isAutoReading());
+            }
+        });
+
+        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (scrollSpeedListener!=null)
+                    scrollSpeedListener.changeSpeed(seekBar,progress,setting.isAutoReading());
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
 
         sbBrightness.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -247,6 +289,35 @@ public class DialogFactory {
             }
         });
 
+        tvTextFont.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent=new Intent(context, FontsActivity.class);
+                context.startActivityForResult(intent,1);
+            }
+        });
+
+
+        //简繁切换
+        tvTradAndSimp.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                boolean flag=false;
+                if(tvTradAndSimp.getText().equals("简")){
+                    tvTradAndSimp.setText("繁");
+                    flag=true;
+                }
+                else{
+                    flag=false;
+                    tvTradAndSimp.setText("简");
+                }
+
+                if(tradSimpListener!=null)
+                    tradSimpListener.changeLanguage(view,flag);
+            }
+        });
+
+
         dialog.setCancelable(true);
         dialog.setCanceledOnTouchOutside(true);
 
@@ -297,5 +368,20 @@ public class DialogFactory {
     public interface ReadStyleListener{
 
         void onChange(View view, ReadStyle readStyle);
+    }
+
+    //简繁切换回调
+    public interface TradSimpListener{
+
+
+        void changeLanguage(View view,boolean isTrad);
+    }
+
+
+    //自动滚屏速度
+    public interface ScrollSpeedListener{
+
+
+        void changeSpeed(View view,int progress,boolean isAutoScroll);
     }
 }

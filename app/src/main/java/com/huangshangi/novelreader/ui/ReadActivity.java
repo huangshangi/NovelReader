@@ -3,6 +3,8 @@ package com.huangshangi.novelreader.ui;
 
 import android.annotation.SuppressLint;
 import android.app.Dialog;
+import android.content.Context;
+import android.content.Intent;
 import android.graphics.Point;
 import android.os.Build;
 import android.os.Bundle;
@@ -18,6 +20,7 @@ import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
@@ -27,9 +30,12 @@ import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.LinearSmoothScroller;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.huangshangi.novelreader.ClickReigon;
+import com.huangshangi.novelreader.Font;
+import com.huangshangi.novelreader.MyApplication;
 import com.huangshangi.novelreader.R;
 import com.huangshangi.novelreader.ReadStyle;
 import com.huangshangi.novelreader.ReadingSetting;
@@ -39,6 +45,8 @@ import com.huangshangi.novelreader.callback.ResultCallback;
 import com.huangshangi.novelreader.crawler.BQG5200Crawler;
 import com.huangshangi.novelreader.dao.dbservice.ChapterDBService;
 import com.huangshangi.novelreader.util.DialogFactory;
+import com.huangshangi.novelreader.util.StringUtil;
+import com.huangshangi.novelreader.util.SysUtil;
 import com.huangshangi.novelreader.webapi.CommonApi;
 
 import java.util.ArrayList;
@@ -71,6 +79,8 @@ public class ReadActivity extends AppCompatActivity {
 
     ChapterTitleChapter chapterTitleChapter;//侧滑栏适配器
 
+    ProgressBar progressBar;
+
     boolean isInvertedFlag=false;//章节正序还是倒序
 
     Point currentPoint;
@@ -85,14 +95,37 @@ public class ReadActivity extends AppCompatActivity {
 
     ChapterDBService chapterDBService;
 
+    boolean isAutoScroll;
+
+    int scrollSpeed;
+
+    boolean shouldSmooth;
+
     Handler handler=new Handler(){
         @Override
         public void handleMessage(@NonNull Message msg) {
-            Log.e("这是测试","成功执行aa"+msg.what);
+
             switch (msg.what){
                 case 1:
-                    Log.e("这是测试","成功执行2");
+
                     init();
+                    getChapterContent(book.getHistoryChpater());
+
+                    invertedList.clear();
+                    invertedList.addAll(list);
+                    Collections.reverse(invertedList);
+                    break;
+
+                case 2:
+                    int position=msg.arg1;
+
+                    recyclerView_content.scrollToPosition(position);
+                    if(book.getHistoryChpater()<position)
+                        delayTurnToChapter(position);
+                    progressBar.setVisibility(View.GONE);
+                    break;
+                case 3:
+                    recyclerView_content.scrollBy(0,2);
                     break;
             }
 
@@ -109,7 +142,7 @@ public class ReadActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         if(getSupportActionBar()!=null){
-            Log.e("测试信息","ceshi");
+
 
             getSupportActionBar().hide();
         }
@@ -130,6 +163,7 @@ public class ReadActivity extends AppCompatActivity {
         readContentAdapter=new ReadContentAdapter(this,list,book);
         chapterTitleChapter=new ChapterTitleChapter(this,list);
 
+        progressBar=findViewById(R.id.pb_loading);
 
         //初始化内容区域
         recyclerView_content=findViewById(R.id.rv_content);
@@ -139,12 +173,13 @@ public class ReadActivity extends AppCompatActivity {
         recyclerView_content.setLayoutManager(linearLayoutManager);
 
         recyclerView_content.setAdapter(readContentAdapter);//适配器为初始化
-        //滑动至上次阅读位置
-        //recyclerView_content.scrollToPosition(book.getHistoryChpater());
+
+
 
         //初始化侧滑菜单
         drawerLayout=findViewById(R.id.dl_read_activity);
         drawerLayout.setLayoutMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
+
 
         listView=findViewById(R.id.lv_chapter_list);
         listView.setAdapter(chapterTitleChapter);//未初始化
@@ -158,11 +193,30 @@ public class ReadActivity extends AppCompatActivity {
 
         setting=ReadingSetting.getInstance();
 
+        isAutoScroll=setting.isAutoReading();
+        scrollSpeed=setting.getAutoReadingSpeed();
 
 
 
         initSetting();
         initDetailSetting();
+
+        drawerLayout.setDrawerListener(new DrawerLayout.DrawerListener() {
+            @Override
+            public void onDrawerSlide(View drawerView, float slideOffset) {}
+            @Override
+            public void onDrawerOpened(View drawerView) {
+                drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+            }
+            @Override
+            public void onDrawerClosed(View drawerView) {
+                drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
+            }
+            @Override
+            public void onDrawerStateChanged(int newState) {}
+        });
+
+
         //为阅读界面设置点击监听器
         recyclerView_content.setOnTouchListener(new View.OnTouchListener() {
             @Override
@@ -180,6 +234,27 @@ public class ReadActivity extends AppCompatActivity {
             }
         });
 
+        recyclerView_content.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                isAutoScroll=false;
+            }
+        });
+        recyclerView_content.addOnScrollListener(new RecyclerView.OnScrollListener() {
+
+            @Override
+            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if(linearLayoutManager!=null)
+                            book.setHistoryChpater(linearLayoutManager.findLastVisibleItemPosition());
+                    }
+                }).start();
+            }
+        });
+
 
         //为侧滑栏设置监听器
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -187,11 +262,16 @@ public class ReadActivity extends AppCompatActivity {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 
                 drawerLayout.closeDrawer(Gravity.LEFT);
-                if(!isInvertedFlag)
-                    recyclerView_content.scrollToPosition(position);
-                else
-                    recyclerView_content.scrollToPosition(list.size()-position-1);
-            }
+                if(isInvertedFlag)
+                    position=list.size()-position-1;
+
+                getChapterContent(position);
+
+                listView.setSelection(position);
+
+                }
+
+
         });
 
         //为正倒序设置监听器
@@ -210,9 +290,8 @@ public class ReadActivity extends AppCompatActivity {
             }
         });
 
+        progressBar.setVisibility(View.VISIBLE);
 
-        //跳转到上一次阅读章节
-       // recyclerView_content.scrollToPosition(book.getHistoryChpater());
     }
 
 
@@ -229,7 +308,7 @@ public class ReadActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 int current = linearLayoutManager.findFirstVisibleItemPosition();
-                recyclerView_content.scrollToPosition(current - 1);
+                getChapterContent(current - 1 >=0 ? current-1 : 0);
                 //更新保存位置
 
             }
@@ -237,7 +316,7 @@ public class ReadActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 int current = linearLayoutManager.findLastVisibleItemPosition();
-                recyclerView_content.scrollToPosition(current + 1 > list.size() ? list.size() : current + 1);
+                getChapterContent(current + 1 >= list.size() ? list.size()-1 : current + 1);
             }
         }, new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -292,6 +371,12 @@ public class ReadActivity extends AppCompatActivity {
                 ReadingSetting.getInstance().setTextSize(textSize);
                 initContent();//重新设置阅读界面
             }
+        }, new DialogFactory.TradSimpListener() {
+            @Override
+            public void changeLanguage(View view, boolean isTrad) {
+                setting.setTradition(isTrad);
+                readContentAdapter.notifyDataSetChanged();
+            }
         }, new DialogFactory.ReadStyleListener() {
             @Override
             public void onChange(View view, ReadStyle readStyle) {
@@ -299,6 +384,14 @@ public class ReadActivity extends AppCompatActivity {
                 changeStyle(readStyle);
                 init();
 
+            }
+        }, new DialogFactory.ScrollSpeedListener() {
+            @Override
+            public void changeSpeed(View view, int progress,boolean flag) {
+                scrollSpeed=progress;
+                isAutoScroll=flag;
+                if(isAutoScroll)
+                    autoScroll();
             }
         });
     }
@@ -387,44 +480,99 @@ public class ReadActivity extends AppCompatActivity {
             Message message=new Message();
             message.what=1;
             handler.sendMessage(message);
-                invertedList.clear();
-                invertedList.addAll(list);
-                Collections.reverse(invertedList);
+
 
         }else{
 
-        }
 
-        CommonApi.getChapterContent(book.getBookChapterUrl(), new ResultCallback() {
-            @Override
-            public void onFinish(Object object, int code) {
-                String html=(String)object;
-                list= BQG5200Crawler.getInstance().getChapters(book.getBookId(),html);
+            CommonApi.getChapterContent(book.getBookChapterUrl(), new ResultCallback() {
+                @Override
+                public void onFinish(Object object, int code) {
+                    String html=(String)object;
+                    list= BQG5200Crawler.getInstance().getChapters(book.getBookId(),html);
 
-                chapterDBService.addCacheChaptersMenu(list);
-                Message message=new Message();
-                message.what=1;
-                handler.sendMessage(message);
-                if(invertedList.size()==0){
-                    invertedList.addAll(list);
-                    Collections.reverse(invertedList);
+                    chapterDBService.addCacheChaptersMenu(list);
+                    Message message=new Message();
+                    message.what=1;
+                    handler.sendMessage(message);
+
+
+
                 }
 
+                @Override
+                public void onError(Exception e) {
+                    e.printStackTrace();
+                }
+            });
+        }
 
-            }
-
-            @Override
-            public void onError(Exception e) {
-                e.printStackTrace();
-            }
-        });
 
 
 
     }
 
 
+    /**
+     * 延迟跳转章节(防止跳到章节尾部)
+     */
+    private void delayTurnToChapter(final int position) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Thread.sleep(50);
+                    handler.sendMessage(handler.obtainMessage(2, position, 0));
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
 
+    }
+
+    //获取某一章的数据
+    private void getChapterContent(final int position){
+        progressBar.setVisibility(View.VISIBLE);
+        final Chapter chapter=list.get(position);
+
+        if(StringUtil.isEmpty(chapter.getChapterContent())){
+
+            CommonApi.getChapterContent(chapter.getChapterUrl(), new ResultCallback() {
+                @Override
+                public void onFinish(Object object, int code) {
+                    final String content=BQG5200Crawler.getInstance().getContent((String)object);
+
+                    chapter.setChapterContent(content);
+
+                    chapterDBService.updateCacheChapter(chapter);
+
+                    Message message=new Message();
+                    message.what=2;
+                    message.arg1= position;
+                    handler.sendMessage(message);
+                }
+
+                @Override
+                public void onError(Exception e) {
+
+                }
+            });
+
+
+        }
+
+        else{
+            recyclerView_content.scrollToPosition(position);
+
+            if(book.getHistoryChpater()<position)
+                delayTurnToChapter(position);
+            else
+                progressBar.setVisibility(View.GONE);
+        }
+
+
+    }
 
 
     //判断当前点击的处于哪个区域
@@ -468,17 +616,28 @@ public class ReadActivity extends AppCompatActivity {
 
 
 
+    private void autoScroll(){
 
-    private int getSystemBrightness() {
-        int brightness = 0;
-        try {
-            brightness = Settings.System.getInt(getContentResolver(), Settings.System.SCREEN_BRIGHTNESS);
-            Log.e("brightness",""+brightness);
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-        return brightness;
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while(isAutoScroll){
+                    try {
+                        Thread.sleep(200-scrollSpeed);
+                        Log.e("speed",300-scrollSpeed+"");
+                        handler.sendEmptyMessage(3);
+
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+
+                }
+            }
+        }).start();
+
+
     }
+
 
     @Override
     protected void onDestroy() {
@@ -490,7 +649,36 @@ public class ReadActivity extends AppCompatActivity {
 
     @Override
     protected void onResume() {
-        readContentAdapter.notifyRepaint();
+        //readContentAdapter.notifyRepaint();
         super.onResume();
     }
+
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        switch (requestCode){
+            case 1:
+                if(resultCode==RESULT_OK){
+                    Font font=(Font)data.getSerializableExtra("FONT");
+                    setting.setTypeFace(font);
+                    readContentAdapter.notifyRepaint(font);
+                }
+        }
+    }
+
+    public class TopSmoothScroller extends LinearSmoothScroller {
+        TopSmoothScroller(Context context) {
+            super(context);
+        }
+        @Override
+        protected int getHorizontalSnapPreference() {
+            return SNAP_TO_START;
+        }
+        @Override
+        protected int getVerticalSnapPreference() {
+            return SNAP_TO_START;  // 将子view与父view顶部对齐
+        }
+    }
+
 }

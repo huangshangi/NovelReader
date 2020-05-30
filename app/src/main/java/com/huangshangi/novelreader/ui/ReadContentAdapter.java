@@ -26,6 +26,7 @@ import com.huangshangi.novelreader.crawler.BQG5200Crawler;
 import com.huangshangi.novelreader.dao.dbservice.ChapterDBService;
 import com.huangshangi.novelreader.util.StringUtil;
 import com.huangshangi.novelreader.webapi.CommonApi;
+import com.spreada.utils.chinese.ZHConverter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -72,10 +73,17 @@ public class ReadContentAdapter extends RecyclerView.Adapter {
         if(viewHolder!=null)
             viewHolder.tv_tips.setVisibility(View.GONE);
 
-
-
         //为判断是否为空  若为空 需重新获取
-        if(StringUtil.isEmpty(chapter.getChapterContent())){
+        Chapter cacheChapter=chapterDBService.getChapterContentByKey(chapter.getBookId(),chapter.getChapterId());
+        if(cacheChapter!=null&&!StringUtil.isEmpty(cacheChapter.getChapterContent())){
+            chapter.setChapterContent(cacheChapter.getChapterContent());
+            chapter.setId(cacheChapter.getId());
+            if (viewHolder != null) {
+                viewHolder.tv_title.setText(chapter.getChapterName());
+                viewHolder.tv_content.setText(StringUtil.transformTradition(chapter.getChapterContent(),setting.isTradition()));
+            }
+        }
+        else{
 
             CommonApi.getChapterContent(chapter.getChapterUrl(), new ResultCallback() {
                 @Override
@@ -107,10 +115,7 @@ public class ReadContentAdapter extends RecyclerView.Adapter {
             });
         }
 
-        else if(viewHolder!=null){
-            viewHolder.tv_title.setText(chapter.getChapterName());
-            viewHolder.tv_content.setText(StringUtil.transformTradition(chapter.getChapterContent(),setting.isTradition()));
-        }
+
 
 
 
@@ -128,12 +133,16 @@ public class ReadContentAdapter extends RecyclerView.Adapter {
             getChapterContent(list.get(position+1),null);
     }
 
-    //因字体 而重绘
     public void notifyRepaint(){
-        if(setting.getTypeFace()== Font.默认字体)
+        notifyRepaint(setting.getTypeFace());
+    }
+
+    //因字体 而重绘
+    public void notifyRepaint(Font font){
+        if(font== Font.默认字体)
             typeface=null;
         else
-            typeface=Typeface.createFromAsset(context.getAssets(),setting.getTypeFace().path);
+            typeface=Typeface.createFromAsset(context.getAssets(),font.path);
 
         super.notifyDataSetChanged();
     }

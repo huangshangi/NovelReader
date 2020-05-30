@@ -1,6 +1,8 @@
 package com.huangshangi.novelreader;
 
-public enum Font {
+import java.io.Serializable;
+
+public enum Font implements Serializable {
 
     默认字体(""),
     方正楷体("fonts/fangzhengkaiti.ttf"),

@@ -15,6 +15,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -47,6 +48,8 @@ public class BookFragment extends Fragment implements HandyGridViewAdapter.Delet
     private LinearLayout llTitleEdit;
     private LinearLayout llTitleBack;
 
+    private ImageView ivFindBook;
+
     private TextView tvTitleName;
 
     BookDBService bookDBService;
@@ -71,13 +74,26 @@ public class BookFragment extends Fragment implements HandyGridViewAdapter.Delet
         initView(view);
         setMode(HandyGridView.MODE.LONG_PRESS);
 
-
+        initBookShelfs();
 
 
         return view;
     }
 
+    @Override
+    public void onHiddenChanged(boolean hidden) {
+        super.onHiddenChanged(hidden);
+        if(!hidden)
+            initBookShelfs();
+    }
 
+
+    private void initBookShelfs(){
+        if(list==null||list.size()==0)
+            mGridView.setVisibility(View.GONE);
+        else
+            mGridView.setVisibility(View.VISIBLE);
+    }
 
 
 
@@ -95,6 +111,8 @@ public class BookFragment extends Fragment implements HandyGridViewAdapter.Delet
         tvTitleName=view.findViewById(R.id.tv_title_text);
         llTitleBack=view.findViewById(R.id.ll_title_back);
         tvFinish=view.findViewById(R.id.tv_edit_finish);
+        ivFindBook=view.findViewById(R.id.iv_title_search);
+
 
         llTitleBack.setVisibility(View.GONE);
         list=bookDBService.getShelfBooks();
@@ -104,9 +122,19 @@ public class BookFragment extends Fragment implements HandyGridViewAdapter.Delet
 
         mGridView.setAutoOptimize(false);
 
+
+
         tvTitleName.setText("书架");
 
         mGridView.setScrollSpeed(750);
+
+        ivFindBook.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent=new Intent(getActivity(),SearchBookActiviry.class);
+                startActivity(intent);
+            }
+        });
 
         tvFinish.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -122,7 +150,7 @@ public class BookFragment extends Fragment implements HandyGridViewAdapter.Delet
             public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
 
                 setMode(HandyGridView.MODE.LONG_PRESS);
-                Log.e("这是测试","测试内容");
+
                 llTitleEdit.setVisibility(View.VISIBLE);
                 if (!mGridView.isTouchMode()&&!mGridView.isNoneMode() && !adapter.isFixed(position)) {
 

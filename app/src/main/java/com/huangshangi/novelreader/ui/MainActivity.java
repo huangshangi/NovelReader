@@ -33,7 +33,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if(getSupportActionBar()!=null)
             getSupportActionBar().hide();
         initviews();
-        setFragment(1);
+        setFragment(0);
     }
 
 

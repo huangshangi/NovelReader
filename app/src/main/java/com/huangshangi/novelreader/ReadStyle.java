@@ -12,6 +12,12 @@ public enum ReadStyle {
 
     }
 
+    public static int indexOf(ReadStyle readStyle){
+        for(int i=0;i<values().length;i++)
+            if(values()[i]==readStyle)
+                return i;
+            return -1;
+    }
 
 
     public static ReadStyle get(int var0) {

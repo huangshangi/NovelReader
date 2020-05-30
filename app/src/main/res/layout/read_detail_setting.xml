@@ -246,7 +246,7 @@
                 android:layout_height="40dp"
                 android:layout_marginLeft="10dp"
                 android:gravity="center"
-                android:background="@drawable/setting_btn_bg2"
+                android:background="@drawable/tv_sele_unsele"
                 android:layout_weight="2.3"
                 android:text="自动滚屏"
                 android:textColor="@color/sys_dialog_setting_word_bright"/>

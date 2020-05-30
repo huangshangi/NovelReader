@@ -22,6 +22,8 @@ public class ChapterTitleChapter extends BaseAdapter {
 
     ReadingSetting setting;
 
+    int currentItemIndex=-1;
+
     public ChapterTitleChapter(Context context, List<Chapter> list){
         this.context=context;
         this.list=list==null?new ArrayList<Chapter>():list;
@@ -54,9 +56,6 @@ public class ChapterTitleChapter extends BaseAdapter {
             convertView= LayoutInflater.from(context).inflate(R.layout.activity_reading_listview_item,null);
             viewHolder=new ViewHolder();
             viewHolder.title=convertView.findViewById(R.id.tv_chapter_title);
-
-
-
             convertView.setTag(viewHolder);
         }else
             viewHolder=(ViewHolder) convertView.getTag();
@@ -66,6 +65,11 @@ public class ChapterTitleChapter extends BaseAdapter {
             viewHolder.title.setTextColor(context.getResources().getColor(setting.getTextColor()));
         else
             viewHolder.title.setTextColor(context.getResources().getColor(R.color.sys_night_word));
+
+
+        if(currentItemIndex==position)
+            viewHolder.title.setTextColor(context.getResources().getColor(R.color.sys_dialog_setting_word_red));
+
         return convertView;
     }
 

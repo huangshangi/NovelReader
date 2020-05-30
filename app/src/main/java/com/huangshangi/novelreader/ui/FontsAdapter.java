@@ -1,7 +1,10 @@
 package com.huangshangi.novelreader.ui;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Typeface;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -19,10 +22,10 @@ import java.util.List;
 public class FontsAdapter extends BaseAdapter {
 
     List<Font>list;
-    Context context;
+    Activity context;
     ReadingSetting setting;
 
-    public FontsAdapter(Context context,List<Font>list){
+    public FontsAdapter(Activity context,List<Font>list){
         this.context=context;
         this.list=list;
         setting=ReadingSetting.getInstance();
@@ -61,7 +64,7 @@ public class FontsAdapter extends BaseAdapter {
         return convertView;
     }
 
-    private void initView(Font font,ViewHolder viewHolder){
+    private void initView(final Font font, ViewHolder viewHolder){
 
         Typeface typeface=null;
         if(font!=Font.默认字体)
@@ -82,7 +85,11 @@ public class FontsAdapter extends BaseAdapter {
             viewHolder.btnUseOrUseless.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-
+                    setting.setTypeFace(font);
+                    Intent intent=new Intent();
+                    intent.putExtra("FONT",font);
+                    context.setResult(Activity.RESULT_OK,intent);
+                    notifyDataSetChanged();
                 }
             });
         }
