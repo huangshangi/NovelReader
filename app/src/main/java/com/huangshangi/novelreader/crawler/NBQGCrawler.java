@@ -3,6 +3,7 @@ package com.huangshangi.novelreader.crawler;
 import com.huangshangi.novelreader.bean.Book;
 import com.huangshangi.novelreader.bean.BookType;
 import com.huangshangi.novelreader.bean.Chapter;
+import com.huangshangi.novelreader.util.StringUtil;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -96,6 +97,7 @@ public class NBQGCrawler implements BaseCrawler{
         book.setBookType(bookType.text());//修真小说
         book.setUpdateDate(updatelast.text());//最后更新：2020-05-21 17:50:00
         book.setLastestChapter(lastestChapter.text());//第946章 移花接木！
+        book.setBookId(StringUtil.getHash(book.getBookName()+book.getAuthorName()));
         return book;
     }
 
@@ -114,6 +116,8 @@ public class NBQGCrawler implements BaseCrawler{
             chapter.setChapterId(i+1);
             chapter.setChapterName(title);
             chapter.setChapterUrl(url);
+            chapter.setBookId(bookId);
+            chapter.setId(bookId+chapter.getChapterId());
             list.add(chapter);
         }
         return list;

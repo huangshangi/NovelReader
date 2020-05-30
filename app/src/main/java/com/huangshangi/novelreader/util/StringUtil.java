@@ -20,11 +20,14 @@ public class StringUtil {
 
     //根据传入的字符串生成相应hash值
     public static String getHash(String string){
-        int div=11113;
+        int div=1333567;
+        int BITS=7;
         long hashCode=0;
         for(char c:string.toCharArray())
             hashCode=((hashCode<<5)+(c-'a'))%div;
 
+        for(int i=0;i<BITS-hashCode/10-1;i++)
+            hashCode*=10;
         return String.valueOf(hashCode);
     }
 }

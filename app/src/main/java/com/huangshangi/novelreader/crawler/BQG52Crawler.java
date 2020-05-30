@@ -8,6 +8,7 @@ package com.huangshangi.novelreader.crawler;
 import com.huangshangi.novelreader.bean.Book;
 import com.huangshangi.novelreader.bean.BookType;
 import com.huangshangi.novelreader.bean.Chapter;
+import com.huangshangi.novelreader.util.StringUtil;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -102,7 +103,7 @@ public class BQG52Crawler implements BaseCrawler {
         book.setLastestChapter(lastestChapterElemetn.text());
         book.setBookIntro(introElement.text());
         book.setBookType(typeElement.text());// > 历史小说 > 我的帝国无双
-
+        book.setBookId(StringUtil.getHash(book.getBookName()+book.getAuthorName()));
         return book;
     }
 
@@ -124,7 +125,8 @@ public class BQG52Crawler implements BaseCrawler {
             chapter.setChapterUrl(element.baseUri()+element.select("a").attr("href"));
             chapter.setChapterName(element.select("a").text());
             chapter.setChapterId(i+1);
-
+            chapter.setBookId(bookId);
+            chapter.setId(bookId+chapter.getChapterId());
             list.add(chapter);
         }
 

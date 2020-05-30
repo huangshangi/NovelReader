@@ -3,6 +3,7 @@ package com.huangshangi.novelreader.crawler;
 import com.huangshangi.novelreader.bean.Book;
 import com.huangshangi.novelreader.bean.BookType;
 import com.huangshangi.novelreader.bean.Chapter;
+import com.huangshangi.novelreader.util.StringUtil;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -87,7 +88,7 @@ public class BQGCrawler implements BaseCrawler {
         book.setLastestChapter(elementLastest.text());//第九十五章 云动砂隐村
         book.setBookImage(BASEURL+elementImageUrl.attr("src"));
         book.setBookIntro(elementIntro.text());
-
+        book.setBookId(StringUtil.getHash(book.getBookName()+book.getAuthorName()));
         return book;
     }
 
@@ -106,6 +107,8 @@ public class BQGCrawler implements BaseCrawler {
             chapter.setChapterUrl(BASEURL+element.attr("href"));
             chapter.setChapterName(element.text());
             chapter.setChapterId(i+1);
+            chapter.setBookId(bookId);
+            chapter.setId(bookId+chapter.getChapterId());
             list.add(chapter);
         }
 
